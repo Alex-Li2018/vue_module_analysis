@@ -8,9 +8,49 @@
 </head>
 <body>
     <script>
-        /*
-            watcher其实是一个中介者的角色,数据变化时通知它,它再通知其他地方
+        /* 
+            Observe是递归侦测所有的key
+            一旦被附加,Observe会被Object的所有属性转换为getter/setter的形式
+            来收集属性的依赖,并且当属性发生变化时通知这些依赖
         */
+
+        class Observer {
+            constructor(value) {
+                this.value = value;
+                if (!Array.isArray(value)) {
+                    this.walk(value);
+                }
+            }
+            walk(obj) {
+                const keys = Object.keys(obj);
+                for (let i = 0; i < keys.length; i++) {
+                    defineReactive(obj, keys[i], obj[keys[i]]);
+                }
+            }
+        }
+
+        function defineReactive(data, key, val) {
+            // 新增,递归属性
+            if (typeof val === 'object') {
+                new Observer(val)
+            }
+            let dep = new Dep();
+            Object.defineProperty(data, key, {
+                configurable: true,
+                enumerable: true,
+                get() {
+                    dep.depend();
+                    return val;
+                },
+                set(newVal) {
+                    if (val === newVal) return;
+                    // 收集依赖
+                    val = newVal;
+                    // 通知视图更新
+                    dep.notify();
+                }
+            })
+        }
 
         class Watcher {
             constructor(vm, expOrFn, cb) {
@@ -50,25 +90,6 @@
             }
         }
 
-        function defineReactive(data, key, val) {
-            let dep = new Dep();
-            Object.defineProperty(data, key, {
-                configurable: true,
-                enumerable: true,
-                get() {
-                    dep.depend();
-                    return val;
-                },
-                set(newVal) {
-                    if (val === newVal) return;
-                    // 收集依赖
-                    val = newVal;
-                    // 通知视图更新
-                    dep.notify();
-                }
-            })
-        }
-
         class Dep {
             constructor() {
                 this.subs = [];
@@ -106,13 +127,25 @@
             }
         }
 
-        const o1 = {}
-        // 响应式
-        defineReactive(o1, 'a', 1);
-        const w1 = new Watcher(o1, 'a', function(oldVal, newVal) {
+        // 对obj所有属性都装上拦截器
+        let origin = {
+            a: 1,
+            b: 2,
+            c: {
+                d: 3,
+                e: {
+                    f: 4
+                }
+            }
+        }
+        const o1 = new Observer(origin);
+
+        console.log(o1);
+        const w1 = new Watcher(origin, 'c.e.f', function(oldVal, newVal) {
             console.log(oldVal, newVal);
         })
-        o1.a = 2;
+        origin.c.e.f = 5;
+
     </script>
 </body>
 </html>
