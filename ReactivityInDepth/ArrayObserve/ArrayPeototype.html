@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        /*
+            数组的依赖在Getter中存,触发在拦截器里
+
+        数组的push,pop,unshift,shift,splice,sort,reverse
+        时不会触发对象的get/set,所以定义
+        一个拦截器覆盖Array.prototype之后每当使用Array原型上的
+        方法操作数组,其实都是执行的拦截器里面的方法
+        */
+
+        const arrayProto = Array.prototype;
+        const arrayMethods = Object.create(arrayProto);
+        console.log(arrayMethods);
+
+        ['push', 'pop', 'unshift', 'shift', 'splice', 'sort', 'reverse']
+        .forEach(function(method) {
+            const original = arrayProto[method];
+            Object.defineProperty(arrayMethods, method, {
+                value: function mutator (...args) {
+                    const ob = this.__ob__;
+                    // 直接通知更新
+                    ob.dep,notify();
+                    return original.apply(this, ...args);
+                },
+                writable: true,
+                enumerable: false,
+                configurable: true
+            })
+        });
+
+        function def(obj, key, val, enumerable) {
+            Object.defineProperty(obj, key, {
+                value: val,
+                enumerable: !!enumerable,
+                writable: true,
+                configurable: true
+            });
+        }
+
+        class Observer {
+            constructor(value) {
+                this.value = value;
+                // dep保存在Observer上的目的是Getter和拦截器里都能访问到
+                this.dep = new Dep();
+                // __ob__用来标识value是否已经被observe转换为响应式的了,同时为了在拦截器里访问到Observer实例
+                def(value, '__ob__', this);
+                // 数组的响应式的处理
+                if (Array.isArray(value)) {
+                    value.__proto__ = arrayMethods;
+                } else {
+                    this.walk(value);
+                }
+            }
+            walk(obj) {
+                const keys = Object.keys(obj);
+                for (let i = 0; i < keys.length; i++) {
+                    defineReactive(obj, keys[i], obj[keys[i]]);
+                }
+            }
+        }
+
+        function defineReactive(data, key, val) {
+            // 新增,递归属性
+            if (typeof val === 'object') {
+                new Observer(val)
+            }
+            let dep = new Dep();
+            let childOb = observe(val);
+            Object.defineProperty(data, key, {
+                configurable: true,
+                enumerable: true,
+                get() {
+                    dep.depend();
+                    // 数组的依赖收集
+                    if (childOb) {
+                        childOb.dep.depend();
+                    }
+                    return val;
+                },
+                set(newVal) {
+                    if (val === newVal) return;
+                    // 收集依赖
+                    val = newVal;
+                    // 通知视图更新
+                    dep.notify();
+                }
+            })
+        }
+
+        function isObject (obj) {
+            return obj !== null && typeof obj === 'object'
+        }
+        var hasOwnProperty = Object.prototype.hasOwnProperty;
+        function hasOwn (obj, key) {
+            return hasOwnProperty.call(obj, key)
+        }
+
+        function observe(value) {
+            if (!isObject(value)) return
+            let ob
+            if(hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+                ob = value.__ob__;
+            } else {
+                ob = new Observer;
+            }
+
+            return ob;
+        }
+
+        class Watcher {
+            constructor(vm, expOrFn, cb) {
+                this.vm = vm;
+                this.getter = parsePath(expOrFn);
+                this.cb = cb;
+                this.value = this.get();
+            }
+            get() {
+                window.target = this;
+                let value = this.getter.call(this.vm, this.vm);
+                window.target = undefined;
+                return value;
+            }
+            update() {
+                const oldValue = this.value;
+                const value = this.get();
+                this.cb.call(this.vm, oldValue, value);
+            }
+        }
+        
+        // 匹配所包含的以_数字字母开头除换行符以外任意字符结尾的正则
+        const bailRE = /[^\w.$]/;
+        /*解析路劲*/
+        function parsePath(path) {
+            if (bailRE.test(path)) {
+                return
+            }
+            const segments = path.split('.')
+            return function(obj) {
+                for(let i = 0; i < segments.length; i++) {
+                    if(!obj) return;
+                    console.log(obj, segments[i]);
+                    obj = obj[segments[i]];
+                }
+                return obj;
+            }
+        }
+
+        class Dep {
+            constructor() {
+                this.subs = [];
+            }
+
+            addSub(sub) {
+                this.subs.push(sub);
+            }
+
+            removeSub(sub) {
+                remove(this.subs, sub);
+            }
+            
+            depend() {
+                if (window.target) {
+                    this.addSub(window.target);
+                }
+            }
+
+            // 通知视图更新
+            notify() {
+                const subs = this.subs.slice();
+                for(let i = 0, l = subs.length; i < l; i++) {
+                    subs[i].update();
+                }
+            }
+        }
+
+        function remove(arr, item) {
+            if (arr.length) {
+                const index = arr.indexOf(item);
+                if (index >= -1) {
+                    return arr.splice(index, 1);
+                }
+            }
+        }
+
+        const vm = {
+            list: [1,2,3]
+        }
+        const o1 = new Observer(vm);
+        console.log(arr);
+    </script>
+</body>
+</html>
