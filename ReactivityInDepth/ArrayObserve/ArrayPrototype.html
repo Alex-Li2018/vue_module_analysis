@@ -11,10 +11,12 @@
         /*
             数组的依赖在Getter中存,触发在拦截器里
 
-        数组的push,pop,unshift,shift,splice,sort,reverse
-        时不会触发对象的get/set,所以定义
-        一个拦截器覆盖Array.prototype之后每当使用Array原型上的
-        方法操作数组,其实都是执行的拦截器里面的方法
+            数组的push,pop,unshift,shift,splice,sort,reverse
+            时不会触发对象的get/set,所以定义
+            一个拦截器覆盖Array.prototype之后每当使用Array原型上的
+            方法操作数组,其实都是执行的拦截器里面的方法
+
+            直接对数组的赋值是会触发set的进而通知到各自的依赖
         */
 
         const arrayProto = Array.prototype;
@@ -27,6 +29,19 @@
                 value: function mutator (...args) {
                     const result = original.apply(this, args);
                     const ob = this.__ob__;
+                    // 新增数组的元素也需要响应式
+                    let inserted
+                    switch(method) {
+                        case 'push':
+                        case 'unshift':
+                            inserted = args;
+                            break;
+                        case 'splice':
+                            inserted = args.splice(2)
+                            break;
+                    }
+                    // 对新增的数据做响应式
+                    if (inserted) ob.observeArray(inserted)
                     // 直接通知更新
                     ob.dep.notify();
                     return result;
@@ -56,6 +71,7 @@
                 // 数组的响应式的处理
                 if (Array.isArray(value)) {
                     value.__proto__ = arrayMethods;
+                    this.observeArray(value);
                 } else {
                     this.walk(value);
                 }
@@ -64,6 +80,12 @@
                 const keys = Object.keys(obj);
                 for (let i = 0; i < keys.length; i++) {
                     defineReactive(obj, keys[i], obj[keys[i]]);
+                }
+            }
+            // 为数组的每一个元素都加上响应式
+            observeArray(items) {
+                for (let i = 0, l = items.length; i < l; i++) {
+                    observe(items[i])
                 }
             }
         }
@@ -110,7 +132,7 @@
             if(hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
                 ob = value.__ob__;
             } else {
-                ob = new Observer;
+                ob = new Observer(value);
             }
 
             return ob;
@@ -191,7 +213,7 @@
         }
 
         const vm = {
-            list: [1,2,3]
+            list: [1, 2, { a: 1 }]
         }
         const o1 = new Observer(vm);
         console.log(vm);
@@ -199,7 +221,8 @@
             console.log(oldVal, newVal);
         });
         // vm.list = [1]
-        vm.list.push(4);
+        // vm.list.push(4);
+        vm.list.push({ b: 1 })
     </script>
 </body>
 </html>
