@@ -142,6 +142,13 @@
                 } else {
                     this.getter = parsePath(expOrFn);
                 }
+
+                // deep参数的实现
+                if (options) {
+                    this.deep = !!options.deep
+                } else {
+                    this.deep = false;
+                }
                 
                 this.cb = cb;
                 this.value = this.get();
