@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        class VNode {
+            constructor(tag, data, children, text, elm, context, componentOptions, asyncFactory) {
+                this.tag = tag;
+                this.data = data;
+                this.children = children;
+                this.text = text;
+                this.elm = elm;
+                this.ns = undefined;
+                this.context = context;
+                this.functionalContext = undefined;
+                this.functionalOptions = undefined;
+                this.functionalScopedId = undefined;
+                this.key = data && data.key;
+                this.componentOptions = componentOptions;
+                this.componentInstance = undefined;
+                this.parent = undefined;
+                this.raw = false;
+                this.isStatic = false;
+                this.isRootInsert = false;
+                this.isComment = false;
+                this.isCloned = false;
+                this.isOnce = false;
+                this.asyncFactory = asyncFactory;
+                this.asyncMeta = undefined;
+                this.isAsyncPlaceholder = false;
+            }
+
+            get child() {
+                return this.componentInstance;
+            }
+        }
+
+        // 注释节点
+        const createEmptyVNode = text => {
+            const node = new VNode();
+            node.text = text;
+            node.isComment = true;
+            return node;
+        }
+
+        const comment = createEmptyVNode('我是注释节点');
+
+        // 文本节点
+        const createTextVNode = val => {
+            return new VNode(undefined, undefined, undefined, String(val))
+        }
+
+        const text = createTextVNode('hello world');
+        
+        // 克隆节点
+        const cloneVNode = (vnode, deep) => {
+            const cloned = new VNode(
+                vnode.tag,
+                vnode.data,
+                vnode.children,
+                vnode.text,
+                vnode.elm,
+                vnode.context,
+                vnode.componentOptions,
+                vnode.asyncFactory
+            );
+            cloned.ns = vnode.ns;
+            cloned.isStatic = vnode.isStatic;
+            clone.key = vnode.key;
+            clone.isComment = vnode.isComment;
+            clone.isCloned = true;
+
+            if (deep.vnode.children) {
+                cloned.children = cloneVNode(vnode.children);
+            }
+
+            return cloned;
+        }
+
+        // 元素节点
+        // 组件节点
+    </script>
+</body>
+</html>
