@@ -83,7 +83,6 @@
             return function(obj) {
                 for(let i = 0; i < segments.length; i++) {
                     if(!obj) return;
-                    console.log(obj, segments[i]);
                     obj = obj[segments[i]];
                 }
                 return obj;
@@ -140,7 +139,6 @@
         }
         const o1 = new Observer(origin);
 
-        console.log(o1);
         const w1 = new Watcher(origin, 'c.e.f', function(oldVal, newVal) {
             console.log(oldVal, newVal);
         })
