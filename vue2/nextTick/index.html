@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        const callbacks = []
+        let pending = false
+
+        function nextTick (cb, ctx) {
+            let _resolve
+            // 用 callbacks 数组存储经过包装的 cb 函数
+            callbacks.push(() => {
+                if (cb) {
+                    // 用 try catch 包装回调函数，便于错误捕获
+                    try {
+                        cb.call(ctx)
+                    } catch (e) {
+                        console.error(e, ctx, 'nextTick')
+                    }
+                } else if (_resolve) {
+                    _resolve(ctx)
+                }
+            })
+            if (!pending) {
+                pending = true
+                // 执行 timerFunc，在浏览器的任务队列中（首选微任务队列）放入 flushCallbacks 函数
+                timerFunc()
+            }
+            if (!cb && typeof Promise !== 'undefined') {
+                return new Promise(resolve => {
+                    _resolve = resolve
+                })
+            }
+        }
+    </script>
+</body>
+</html>

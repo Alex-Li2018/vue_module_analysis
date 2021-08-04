@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        /*
+            watcher其实是一个中介者的角色,数据变化时通知它,它再通知其他地方
+        */
+
+        class Watcher {
+            constructor(vm, exprOrFn, cb, options) {
+                this.vm = vm
+                if (typeof exprOrFn === 'function') {
+                    this.getter = exprOrFn
+                }
+                if (options) {
+                    this.lazy = !!options.lazy // 为computed 设计的
+                } else {
+                    this.lazy = false
+                }
+                this.dirty = this.lazy
+                this.cb = cb
+                this.options = options
+            
+                this.deps = []
+                this.depsId = new Set()
+                this.value = this.lazy ? undefined : this.get()
+            }
+            get() {
+                window.target = this;
+                let value = this.getter.call(this.vm, this.vm);
+                window.target = undefined;
+                return value;
+            }
+            update() {
+                const oldValue = this.value;
+                const value = this.get();
+                this.cb.call(this.vm, oldValue, value);
+            }
+            evaluate() {
+                this.value = this.get()
+                this.dirty = false
+            }
+            depend() {
+                let i = this.deps.length
+                while (i--) {
+                    this.deps[i].depend()
+                }
+            }
+        }
+        
+        // 匹配所包含的以_数字字母开头除换行符以外任意字符结尾的正则
+        const bailRE = /[^\w.$]/;
+        /*解析路劲*/
+        function parsePath(path) {
+            if (bailRE.test(path)) {
+                return
+            }
+            const segments = path.split('.')
+            return function(obj) {
+                for(let i = 0; i < segments.length; i++) {
+                    if(!obj) return;
+                    console.log(obj, segments[i]);
+                    obj = obj[segments[i]];
+                }
+                return obj;
+            }
+        }
+
+        function defineReactive(data, key, val) {
+            let dep = new Dep();
+            Object.defineProperty(data, key, {
+                configurable: true,
+                enumerable: true,
+                get() {
+                    dep.depend();
+                    return val;
+                },
+                set(newVal) {
+                    if (val === newVal) return;
+                    // 收集依赖
+                    val = newVal;
+                    // 通知视图更新
+                    dep.notify();
+                }
+            })
+        }
+
+        class Dep {
+            constructor() {
+                this.subs = [];
+            }
+
+            addSub(sub) {
+                this.subs.push(sub);
+            }
+
+            removeSub(sub) {
+                remove(this.subs, sub);
+            }
+            
+            depend() {
+                if (window.target) {
+                    this.addSub(window.target);
+                }
+            }
+
+            // 通知视图更新
+            notify() {
+                const subs = this.subs.slice();
+                for(let i = 0, l = subs.length; i < l; i++) {
+                    subs[i].update();
+                }
+            }
+        }
+
+        function remove(arr, item) {
+            if (arr.length) {
+                const index = arr.indexOf(item);
+                if (index >= -1) {
+                    return arr.splice(index, 1);
+                }
+            }
+        }
+        function initComputed() {
+            const watchers = vm._computedWatchers = Object.create(null);
+            for (const key in computed) {
+                const userDef = computed[key]
+                const getter = typeof userDef === 'function' ? userDef : userDef.get
+               
+                // create internal watcher for the computed property.
+                watchers[key] = new Watcher(
+                    vm,
+                    getter || noop,
+                    noop,
+                    computedWatcherOptions
+                )
+              
+                if (!(key in vm)) {
+                    defineComputed(vm, key, userDef)
+                }
+            }
+        }
+        function defineComputed(vm, key, userDef) {
+            let getter = null
+            
+            // 判断是函数还是对象
+            if (typeof userDef === 'function') {
+                getter = createComputedGetter(key)
+            } else {
+                getter = userDef.get
+            }
+            Object.defineProperty(vm, key, {
+                enumerable: true,
+                configurable: true,
+                get: getter,
+                set: function() {}
+            })
+        }
+        // 创建computed函数
+        function createComputedGetter(key) {
+            return function computedGetter() {
+                const watcher = this._computedWatchers[key]
+                if (watcher) {
+                    if (watcher.dirty) {// 给computed的属性添加订阅watchers
+                        watcher.evaluate()
+                    }
+                    // 把渲染watcher 添加到属性的订阅里面去，这很关键
+                    if (Dep.target) {
+                        watcher.depend()
+                    }
+                    return watcher.value
+                }
+            }
+        }
+
+        const o1 = {}
+        // 响应式
+        defineReactive(o1, 'a', 1);
+        o1.a = 2;
+    </script>
+</body>
+</html>
