@@ -12,6 +12,7 @@
         <div id="example">
             <!-- <p>Original message: "{{ message }}"</p> -->
             <p>Computed reversed message: "{{ reversedMessage }}"</p>
+            <button @click="handlerClick">点击</button>
         </div>
     </div>
 
@@ -19,7 +20,8 @@
         var vm = new Vue({
             el: '#example',
             data: {
-                message: 'Hello'
+                message: 'Hello',
+                arr: [1]
             },
             // props: {
             //     target: {
@@ -34,11 +36,12 @@
                 return this.message.split('').reverse().join('')
                 }
             },
-            // methods: {
-            //     loadData() {
-                    
-            //     }
-            // }
+            methods: {
+                handlerClick() {
+                    this.arr.push(2);
+                    this.message = 'world';
+                }
+            }
         });
     </script>
 </body>
