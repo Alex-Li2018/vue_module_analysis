@@ -29,6 +29,9 @@
             //         default: ''
             //     }
             // },
+            beforeCreate() {
+                console.log('beforeCreate');
+            },
             computed: {
                 // 计算属性的 getter
                 reversedMessage: function () {
