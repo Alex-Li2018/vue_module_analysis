@@ -158,7 +158,7 @@ function defineReactive(data, key, val) {
         enumerable: true,
         get() {
             dep.depend();
-            // 数组的依赖收集
+            // 传入的字又是一个对象需要响应式
             if (childOb) {
                 childOb.dep.depend();
             }
