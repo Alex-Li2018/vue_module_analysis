@@ -21,7 +21,7 @@
             el: '#example',
             data: {
                 message: 'Hello',
-                arr: [1]
+                // arr: [{ a: 1 }]
             },
             // props: {
             //     target: {
@@ -32,6 +32,11 @@
             beforeCreate() {
                 console.log('beforeCreate');
             },
+            // watch: {
+            //     message(newVal, oldVal) {
+            //         console.log(newVal, oldVal);
+            //     }  
+            // },
             computed: {
                 // 计算属性的 getter
                 reversedMessage: function () {
@@ -41,7 +46,8 @@
             },
             methods: {
                 handlerClick() {
-                    this.arr.push(2);
+                    // this.arr.push({b: 2});
+                    // this.arr = [2];
                     this.message = 'world';
                 }
             }
